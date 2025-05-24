@@ -8,7 +8,7 @@
     Email VARCHAR(100),
     password varchar(10) NOT NULL
 );
-
+#dhakshin edit
 
 CREATE TABLE Accounts (
     Account_ID INT AUTO_INCREMENT PRIMARY KEY,
