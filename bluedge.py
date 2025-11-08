@@ -44,9 +44,8 @@ def transfer_amount(ids):
     while True:
         cur.execute('select to_account_id from transfers where from_account_id=%s and transfer_type="transfer" ',(ids,))
         frequent=cur.fetchall()
-        print(frequent)
         freq_acc={}
-        cur.execute('select from_account_id,count(*) from transfers where from_account_id=%s',(ids,))
+        cur.execute('select from_account_id,count(*) from transfers where from_account_id=%s and transfer_type="transfer"',(ids,))
         r=cur.fetchall()
         if r[0][1]>=3:
             n=3
@@ -59,25 +58,32 @@ def transfer_amount(ids):
         for i in frequent:
             v=i[0]
             if v not in freq_acc:
-                for f in frequent:
-                    count=0
-                    if f[0]==v:
-                        count+=1
-                freq_acc[v]=count
-                print(freq_acc)
-        h=max(freq_acc,key=freq_acc.get)
-        cur.execute('select account_id,first_name from accounts ,customers where account_id=%s',(h,))
-        q=cur.fetchall()
-        print('Account id:',q[0][0],'Name:',q[0][1])
-        del freq_acc[h]
-        to_acc=int(input('Enter the account id of the account you want to transfer:'))
-        amt=float(input('Enter the amount you want to transfer:'))
+                freq_acc[v]=1
+            else:
+                freq_acc[v]+=1
+        for i in range(n):
+            h=max(freq_acc,key=freq_acc.get)
+            cur.execute('select account_id,first_name from accounts ,customers where account_id=%s',(h,))
+            q=cur.fetchall()
+            print('Account id:',q[0][0],'Name:',q[0][1])
+            del freq_acc[h]
+        try:
+            to_acc=int(input('Enter the account id of the account you want to transfer:'))
+        except:
+            print('Enter a valid id')
+            continue
         cur.execute('select 1 from accounts where account_id=%s',(to_acc,))
         acc=cur.fetchone()
         if acc==None:
-            print('***There is no such account_id***')
+            print('***There is no such account_id***\n')
+            continue
+        try:
+            amt=float(input('Enter the amount you want to transfer:'))
+        except:
+            print('Enter a valid value')
+            continue
         else:
-            break
+            break       
     cur.execute('select balance from accounts where account_id=%s',(ids,))
     balance=cur.fetchone()
     if balance[0]>=amt:
@@ -87,12 +93,12 @@ def transfer_amount(ids):
             print('\t\t2.IMPS')
             ch=int(input('Which of the above you prefer(1/2):'))
             if ch==1:
-                print('Your transfer would be done within 2 hours:')
+                print('Your transfer would be done within 2 hours')
                 cur.execute('update accounts set balance=balance-%s where account_id=%s',(amt,ids))
                 cur.execute('update accounts set balance=balance+%s where account_id=%s',(amt,to_acc))
                 cur.execute('insert into transfers(from_account_id,to_account_id,amount,transfer_type) values (%s,%s,%s,"transfer")',(ids,to_acc,amt))
                 obj.commit()
-                print('Transaction has been done successfully')
+                print('Transaction has been done successfully\n')
             elif ch==2:
                 if amt<=1000:
                     charge=1
@@ -108,7 +114,7 @@ def transfer_amount(ids):
                 cur.execute('update accounts set balance=balance-%s where account_id=%s',(amt+charge,ids))
                 cur.execute('insert into transfers(from_account_id,to_account_id,amount,transfer_type) values (%s,%s,%s,"transfer")',(ids,to_acc,amt))
                 obj.commit()
-                print('Transaction has been done successfully')
+                print('Transaction has been done successfully\n')
             else:
                 print('Please enter a valid choice')
         elif  amt>=200000:
@@ -116,23 +122,35 @@ def transfer_amount(ids):
             cur.execute('update accounts set balance=balance+%s where account_id=%s',(amt,to_acc))
             cur.execute('insert into transfers(from_account_id,to_account_id,amount,transfer_type) values (%s,%s,%s,"transfer")',(ids,to_acc,amt))
             obj.commit()
-            print('Transaction has been done successfully')
-        else:
-            print('Please enter a valid choice')
+            print('Transaction has been done successfully\n')
     else:
-            print('Insufficient balance')
+            print('****Insufficient balance****\n')
 
 
 def deposit_amount(ids):
-    amt=float(input('Enter the amount you want to deposit:'))
+    while True:
+        try:
+            amt=float(input('Enter the amount you want to deposit:'))
+        except:
+            print('****Please enter valid amount****\n')
+            continue
+        else:
+            break
     cur.execute('update accounts set balance=balance+%s where account_id=%s',(amt,ids))
     cur.execute('insert into transfers(to_account_id,amount,transfer_type) values (%s,%s,"deposit")',(ids,amt))
-    print('Rs.',amt,'has been deposited')
+    print('Rs.',amt,'has been deposited\n')
     obj.commit() 
 
 
 def withdraw_amount(ids):
-    amt=float(input('Enter the amount you want to withdraw:'))
+    while True:
+        try:
+            amt=float(input('Enter the amount you want to withdraw:'))
+        except:
+            print('****Please enter valid amount****')
+            continue
+        else:
+            break
     cur.execute('select balance from accounts where account_id=%s',(ids,))
     balance=cur.fetchone()
     if balance[0]>=amt:
@@ -141,7 +159,7 @@ def withdraw_amount(ids):
         print('Rs.',amt,'has been withdrawn')
         obj.commit()
     else:
-        print('Insufficient balance')
+        print('****Insufficient balance****\n')
 
 
 def view_bankbalance(ids):
@@ -155,7 +173,7 @@ def history(ids):
     cur.execute('select transfer_id,from_account_id,to_account_id,amount,transfer_date,transfer_type from transfers where from_account_id=%s or to_account_id=%s',(ids,ids))
     data=cur.fetchall()
     from tabulate import tabulate
-    table=tabulate(data,headers=[' transfer_id ' ,' from_account_id ',' to_account_id ',' amount ',' transfer_data ',' transfer_type '],tablefmt='grid',stralign='center',colalign='center')
+    table=tabulate(data,headers=[' transfer_id ' ,' from_account_id ',' to_account_id ',' amount ',' transfer_date ',' transfer_type '],tablefmt='grid',stralign='center',colalign='center')
     print(table)
 
 
@@ -187,7 +205,7 @@ def singleuser(ids,c_id):
             front_page()
             break
         else:
-            print('Please enter a valid choice')
+            print('Please enter a valid choice\n')
 
 
 def create_account(c_id):
@@ -215,7 +233,7 @@ def create_account(c_id):
         else:
             break
     cur.execute('insert into accounts(customer_id,account_type,balance)values(%s,%s,%s)',(c_id,type,initial_deposit))
-    print('Account created successfully')
+    print('Account created successfully\n')
     obj.commit()
 
 
@@ -239,19 +257,19 @@ def sign_up():
         try:
             DOB=datetime.strptime(dob, "%Y-%m-%d").date()
         except ValueError:
-            print('***Date should be in the format (YYYY-MM-DD)***')
+            print('***Date should be in the format (YYYY-MM-DD)***\n')
         else:
             break
     while True:
         email=input('Enter your email id:')
         if not(email.endswith('@yahoo.com') or email.endswith('@gmail.com') or email.endswith('@hotmail.com') or email.endswith('outlook.com')):
-            print('****Invalid email****')
+            print('****Invalid email****\n')
             continue
         break
     while True:
         no=input('Enter your mobile number:')
         if len(no)!=10 or not no.isdigit():
-            print('****Invalid phone number****')
+            print('****Invalid phone number****\n')
             print('Re-enter the number')
         else:
             break
@@ -263,7 +281,7 @@ def sign_up():
              elif  10>=len(passwd) and len(passwd)>=6:
                 check=input('Re-enter the password:')
                 if passwd!=check:
-                    print('***Password mismatched***')
+                    print('***Password mismatched***\n')
                 else:
                      value=(firstname,lastname,dob,email,no,address,passwd)
                      cur.execute('insert into customers (first_name,last_name,date_of_birth,email,phone_number,address,password) values(%s,%s,%s,%s,%s,%s,%s)',value)
@@ -271,7 +289,7 @@ def sign_up():
                      obj.commit()
                      cur.execute('select customer_id from customers where first_name=%s and last_name=%s and phone_number=%s',(firstname,lastname,no))
                      c_id=cur.fetchone()
-                     print('Your customer id is',c_id[0],'\n***Please keep it safe***')
+                     print('YOUR CUSTOMER ID IS',c_id[0],'\n***Please keep it safe***\n')
                      break       
 
 
@@ -301,7 +319,7 @@ def login():
                         create_account(c_id)
                         break
                     else:
-                        print('***Enter a valid choice(Y/N)***')
+                        print('***Enter a valid choice(Y/N)***\n')
                 elif len(ids)>1:
                     print('Your accounts are:')
                     for acc in ids:
@@ -310,7 +328,7 @@ def login():
                     singleuser(acc_id,c_id)
                     break
         else:
-            print('**Incorrect password**')
+            print('**Incorrect password**\n')
             passwd=input('Re-enter password:')
 
 
@@ -329,6 +347,6 @@ def front_page():
             obj.close()
             exit()
         else:
-            print('*** Please enter a valid choice***')
+            print('*** Please enter a valid choice***\n')
 
 front_page()
